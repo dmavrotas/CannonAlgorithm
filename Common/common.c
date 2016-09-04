@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 /* This function creates a matrix and returns it */
-Matrix* CreateMatrix(int sizex, int sizey, double* dataz) {
+Matrix* CreateMatrix(int sizex, int sizey, double** dataz) {
     int i = 0;
     int j = 0;
 
@@ -27,15 +27,30 @@ Matrix* CreateMatrix(int sizex, int sizey, double* dataz) {
             if(matrix->items[i][j] != NULL) {
                 matrix->items[i][j]->row = i;
                 matrix->items[i][j]->column = j;
-                matrix->items[i][j]->data = dataz;
+                matrix->items[i][j]->data = dataz[i][j];
             } 
         }
     }
+
+    return matrix;
 }
 
 /* This function inserts a MatrixItem inside a Matrix and returns the matrix */
-Matrix* InsertMatrixItem(Matrix** matrix, MatrixItem* item) {
+Matrix* InsertMatrixItem(Matrix* matrix, MatrixItem* item) {
+    int i = 0;
+    int j = 0;
+    
+    if(matrix == NULL) return NULL;
 
+    if(item == NULL) return NULL;
+
+    for(i = 0; i < matrix->sizex; i++) {
+        for(j = 0; j < matrix->sizey; j++) {
+            matrix->items[i][j] = item;
+        }
+    }
+
+    return matrix;
 }
 
 /* This function just prints a matrix */

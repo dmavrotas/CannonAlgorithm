@@ -14,7 +14,7 @@ struct Matrix {
 
 /* Matrix functions */
 
-Matrix* CreateMatrix(int sizex, int sizey, double* dataz);
-Matrix* InsertMatrixItem(Matrix** matrix, MatrixItem* item)
+Matrix* CreateMatrix(int sizex, int sizey, double** dataz);
+Matrix* InsertMatrixItem(Matrix* matrix, MatrixItem* item)
 void PrintMatrix(Matrix** matrix);
 
