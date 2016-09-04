@@ -34,7 +34,7 @@ Matrix* CreateMatrix(int sizex, int sizey, double* dataz) {
 }
 
 /* This function inserts a MatrixItem inside a Matrix and returns the matrix */
-Matrix** InsertMatrixItem(Matrix** matrix, MatrixItem* item) {
+Matrix* InsertMatrixItem(Matrix** matrix, MatrixItem* item) {
 
 }
 
