@@ -18,10 +18,11 @@ int main(int argc, char* argv[]) {
 
     GetAndValidateParameters(argc, argv);
 
-    matrixa = CreateMatrix(TABLE_SIZE, TABLE_SIZE, CreateRandomDataSet());
-    matrixb = CreateMatrix(TABLE_SIZE, TABLE_SIZE, CreateRandomDataSet());
-    matrixc = CreateMatrix(TABLE_SIZE, TABLE_SIZE, CreateRandomDataSet());
+    matrixa = CreateMatrix(TABLE_SIZE, TABLE_SIZE, CreateEmptyDataSet());
+    matrixb = CreateMatrix(TABLE_SIZE, TABLE_SIZE, CreateEmptyDataSet());
+    matrixc = CreateMatrix(TABLE_SIZE, TABLE_SIZE, CreateEmptyDataSet());
 
+    
 
     MPI_Init(&argc, &argv);
     

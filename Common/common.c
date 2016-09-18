@@ -262,3 +262,27 @@ double** CreateRandomDataSet(int sizex, int sizey) {
 
     return datas;
 }
+
+/* Creates a 2D table with empty data */
+double** CreateEmptyDataSet(int sizex, int sizey) {
+    double** datas = NULL;
+    int i = 0;
+    int j = 0;
+
+    if(sizex == 0 || sizey == 0) return NULL;
+
+    datas = malloc(sizex * sizeof(double*));
+    if(datas == NULL) return NULL;
+
+    for(i = 0; i < sizex; i++) {
+        datas[i] = malloc(j * sizeof(double));
+
+        if(datas[i] == NULL) return NULL;
+        
+        for(j = 0; j < sizey; j++) {
+            datas[i][j] = 0;
+        }
+    }
+
+    return datas;
+}
