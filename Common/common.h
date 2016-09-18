@@ -26,3 +26,4 @@ void MultiplyMatrix(Matrix* matrix, Matrix* matrixa, Matrix* matrixb);
 double* CreateArrayAsMatrix(int i, int j);
 double* RandomizeArray(double* arr, int i, int j);
 int ArrayAsEquals(double* arr1, double* arr2, int i, int j);
+double** CreateRandomDataSet(int sizex, int sizey);
