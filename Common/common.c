@@ -256,7 +256,7 @@ double** CreateRandomDataSet(int sizex, int sizey) {
         if(datas[i] == NULL) return NULL;
         
         for(j = 0; j < sizey; j++) {
-            datas[i][j] = rand() % 10 + 1;
+            datas[i][j] = rand() % 100 + 1;
         }
     }
 
@@ -285,4 +285,30 @@ double** CreateEmptyDataSet(int sizex, int sizey) {
     }
 
     return datas;
+}
+
+Matrix* MultiplyMatrixes(Matrix* matrixa, Matrix* matrixb) {
+    int i = 0;
+    int j = 0;
+    int k = 0;
+
+    Matrix* matrix = NULL;
+
+    if(matrixa == NULL || matrixb == NULL) return NULL;
+    
+    if(matrixa.sizex == 0 || matrixa.sizey == 0) return NULL;
+    if(matrixb.sizex == 0 || matrixb.sizey == 0) return NULL;
+
+    if(matrixa.sizex != matrixb.sizex) return NULL;
+    if(matrixa.sizey != matrixb.sizey) return NULL;
+
+    matrix = CreateMatrix(matrixa.sizex, matrixa.sizey, CreateEmptyDataSet())
+
+    for(i = 0; i < matrixa.sizex; i++) {
+        for(j = 0; j < matrixa.sizey; j++) {
+            for(k = 0; k < matrixa.sizex; k++) {
+                matrix[i*matrixa.sizex+j] += matrixa[i*n+k]*matrixb[k*n+j];
+            }
+        }
+    }
 }
