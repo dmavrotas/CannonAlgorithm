@@ -287,6 +287,7 @@ double** CreateEmptyDataSet(int sizex, int sizey) {
     return datas;
 }
 
+/* Return the multiplication of 2 matrices */
 Matrix* MultiplyMatrixes(Matrix* matrixa, Matrix* matrixb) {
     int i = 0;
     int j = 0;
@@ -310,5 +311,20 @@ Matrix* MultiplyMatrixes(Matrix* matrixa, Matrix* matrixb) {
                 matrix[i*matrixa.sizex+j] += matrixa[i*n+k]*matrixb[k*n+j];
             }
         }
+    }
+}
+
+/* Create a 2D matrix that has 1D structure */
+double* CreateHorizontalMatrix(int sizex, int sizey) {
+    int i = 0;
+    double* array = NULL;
+
+    if(sizex == 0 || sizey == 0) return NULL;
+
+    array = malloc((sizex*sizey)* sizeof(double));
+    if(array == NULL) return NULL;
+
+    for(i = 0; i < sizex*sizey; i++) {
+        array[i] = rand() % 100 + 1;
     }
 }

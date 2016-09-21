@@ -50,15 +50,15 @@ int main(int argc, char* argv[]) {
     double** blocksb = NULL;
     double** blocksc = NULL;
 
-    Matrix* matrixa = NULL;
-    Matrix* matrixb = NULL;
-    Matrix* matrixc = NULL;
+    double* matrixa = NULL;
+    double* matrixb = NULL;
+    double* matrixc = NULL;
 
     GetAndValidateParameters(argc, argv);
 
-    matrixa = CreateMatrix(TABLE_SIZE, TABLE_SIZE, CreateRandomDataSet(TABLE_SIZE, TABLE_SIZE));
-    matrixb = CreateMatrix(TABLE_SIZE, TABLE_SIZE, CreateRandomDataSet(TABLE_SIZE, TABLE_SIZE));
-    matrixc = CreateMatrix(TABLE_SIZE, TABLE_SIZE, CreateRandomDataSet(TABLE_SIZE, TABLE_SIZE));
+    matrixa = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
+    matrixb = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
+    matrixc = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
 
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &processors); 

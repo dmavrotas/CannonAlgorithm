@@ -27,3 +27,4 @@ double* CreateArrayAsMatrix(int i, int j);
 double* RandomizeArray(double* arr, int i, int j);
 int ArrayAsEquals(double* arr1, double* arr2, int i, int j);
 double** CreateRandomDataSet(int sizex, int sizey);
+double* CreateHorizontalMatrix(int sizex, int sizey);
