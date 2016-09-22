@@ -25,6 +25,10 @@ double** CreateBlockTables(int sizex, int sizey) {
     return table;
 }
 
+void RunMPI() {
+
+}
+
 void ImplementSlaveMPI(Matrix* matrix, Matrix* matrixa, Matrix* matrixb) {
     
 }
@@ -45,6 +49,8 @@ int main(int argc, char* argv[]) {
     int blocks = 0;
     int rank = 0;
     int current_block = 0;
+    double start = 0;
+    double end = 0;
 
     double** blocksa = NULL;
     double** blocksb = NULL;
@@ -82,10 +88,21 @@ int main(int argc, char* argv[]) {
 
     for(i = rowBlock * dimension; i < rowBlock * dimension + dimension; i++) {
         for(j = columnBlock * dimension; j < columnBlock * dimension + dimension; j++) {
-            
+            blocksa[rank][current_block] = matrixa[i * TABLE_SIZE + j];
+            blocksb[rank][current_block] = matrixb[i * TABLE_SIZE + j];
+            blocksc[rank][current_block] = 0;
+            current_block++;
         }
     }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    start = MPI_Wtime();
     
+    RunMPI();
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    end = MPI_Wtime();
+
     MPI_Finalize();
     
     return 0;
