@@ -150,7 +150,8 @@ int main(int argc, char* argv[]) {
     printf("Initialization successful \n");
     if(processors == 0 ) return -1;
 
-    dimension = TABLE_SIZE*TABLE_SIZE/processors;
+    dimension = TABLE_SIZE/sqrt(processors);
+    printf("Dimension : %d \n", dimension);
     blocks = TABLE_SIZE/dimension;
 
     blocksa = CreateBlockTables(processors, dimension*dimension);
@@ -158,6 +159,7 @@ int main(int argc, char* argv[]) {
     blocksc = CreateBlockTables(processors, dimension*dimension);
 
     printf("Blocks created \n");
+    printf("Blocks : %d \n", blocks);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -166,6 +168,8 @@ int main(int argc, char* argv[]) {
 
     columnBlock = rank % blocks;
     rowBlock = (rank - columnBlock) / blocks;
+
+    printf("Ranks given \n");
 
     for(i = rowBlock * dimension; i < rowBlock * dimension + dimension; i++) {
         for(j = columnBlock * dimension; j < columnBlock * dimension + dimension; j++) {
