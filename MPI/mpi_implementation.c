@@ -7,7 +7,6 @@
 
 #define TABLE_SIZE 400
 
-
 double** CreateBlockTables(int sizex, int sizey) {
     double** table = NULL;
     int i = 0;
@@ -33,18 +32,20 @@ void RunMPI(int size, double* blocksa, double* blocksb, double* blocksc, double*
     int dimensions[2];
     int periods[2];
     int rank = 0;
-    int 2dRank = 0;
+    int rank2D = 0;
     int coords[2];
     int uprank = 0;
     int downrank = 0;
     int rightrank = 0;
     int leftrank = 0;
-    int coords2[2] = 0;
+    int coords2[2];
     int shiftright = 0;
     int shiftleft = 0;
     int indentation = 0;
     int size_n = size;
-    int indetation_column = 0;
+    int indentation_column = 0;
+
+    printf("Inside RUNMPI \n");
 
     MPI_Status status;
     MPI_Comm commloc;
@@ -57,8 +58,8 @@ void RunMPI(int size, double* blocksa, double* blocksb, double* blocksc, double*
 
     MPI_Cart_create(comm, 2, dimensions, periods, 1, &commloc);
 
-    MPI_Comm_rank(commloc, &2drank);
-    MPI_Cart_coords(commloc, 2drank, 2, coords);
+    MPI_Comm_rank(commloc, &rank2D);
+    MPI_Cart_coords(commloc, rank2D, 2, coords);
 
     MPI_Cart_shift(commloc, 1, -1, &rightrank, &leftrank);
     MPI_Cart_shift(commloc, 0, -1, &downrank, &uprank);
@@ -66,28 +67,28 @@ void RunMPI(int size, double* blocksa, double* blocksb, double* blocksc, double*
     local = size/dimensions[0];
 
     MPI_Cart_shift(commloc, 1, -coords[0], &shiftright, &shiftleft);
-	MPI_Sendrecv_replace(blocksa, local*local, MPI_INT, shiftdest, 1, shiftright, 1, commloc, &status);
+	MPI_Sendrecv_replace(blocksa, local*local, MPI_INT, shiftleft, 1, shiftright, 1, commloc, &status);
 	MPI_Cart_shift(commloc, 0, -coords[1], &shiftright, &shiftleft);
 	MPI_Sendrecv_replace(blocksb, local*local, MPI_INT, shiftleft, 1, shiftright, 1, commloc, &status);
 
     for (i=0; i<dimensions[0]; i++)
 	{
-		MatrixMultiply(local, blocksa, blocksb, blocksc); /*c=c+a*b*/
-		/* Shift matrix a left by one */
+		MatrixMultiply(local, blocksa, blocksb, blocksc);
+		
 		MPI_Sendrecv_replace(blocksa, local*local, MPI_INT, leftrank, 1, rightrank, 1, commloc, &status);
-		/* Shift matrix b up by one */
+		
 		MPI_Sendrecv_replace(blocksb, local*local, MPI_INT, uprank, 1, downrank, 1, commloc, &status);
 	}
 
-    MPI_Cart_shift(commloc, 1, +mycoords[0], &shiftright, &shiftleft);
+    MPI_Cart_shift(commloc, 1, +coords[0], &shiftright, &shiftleft);
 	MPI_Sendrecv_replace(blocksa, local*local, MPI_INT,shiftleft, 1, shiftright, 1, commloc, &status);
-	MPI_Cart_shift(commloc, 0, +mycoords[1], &shiftright, &shiftleft);
+	MPI_Cart_shift(commloc, 0, +coords[1], &shiftright, &shiftleft);
 	MPI_Sendrecv_replace(blocksb, local*local, MPI_INT, shiftleft, 1, shiftright, 1, commloc, &status);
 	MPI_Comm_free(&commloc);
 
     for(indentation = 0; indentation < local; indentation++) {
         for(indentation_column = 0; indentation_column < local; indentation_column++) {
-            matrix[(coords[0]*local+identation) + (coords[1]*local+indentation_column)] =
+            matrix[(coords[0]*local+indentation) + (coords[1]*local+indentation_column)] =
                     blocksc[indentation*local+indentation_column];
         }
     }
@@ -100,7 +101,7 @@ void RunMPI(int size, double* blocksa, double* blocksb, double* blocksc, double*
     }
 }
 
-void ImplementMasterMPI(int rank) {
+int ImplementMasterMPI(int rank, double* matrixa, double* matrixb, double* matrixc) {
     if(rank == 0) {
         double* matrixd = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
         matrixd = MultiplyMatrixesDouble(matrixa, matrixb, TABLE_SIZE);
@@ -113,6 +114,8 @@ void ImplementMasterMPI(int rank) {
 
         if(equity == 1) return 1;
     }
+
+    return -1;
 }
 
 int main(int argc, char* argv[]) {
@@ -138,15 +141,13 @@ int main(int argc, char* argv[]) {
     double* matrixb = NULL;
     double* matrixc = NULL;
 
-    GetAndValidateParameters(argc, argv);
-
     matrixa = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
     matrixb = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
     matrixc = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
-
+    printf("Start \n");
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &processors); 
-
+    printf("Initialization successful \n");
     if(processors == 0 ) return -1;
 
     dimension = TABLE_SIZE*TABLE_SIZE/processors;
@@ -155,6 +156,8 @@ int main(int argc, char* argv[]) {
     blocksa = CreateBlockTables(processors, dimension*dimension);
     blocksb = CreateBlockTables(processors, dimension*dimension);
     blocksc = CreateBlockTables(processors, dimension*dimension);
+
+    printf("Blocks created \n");
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -175,14 +178,14 @@ int main(int argc, char* argv[]) {
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    start = MPI_Wtime(TABLE_SIZE, blocksa[rank], blocksb[rank], blocksc[rank], &matrixc[0], MPI_COMM_WORLD);
+    start = MPI_Wtime();
     
-    RunMPI();
+    RunMPI(TABLE_SIZE, blocksa[rank], blocksb[rank], blocksc[rank], &matrixc[0], MPI_COMM_WORLD);
 
     MPI_Barrier(MPI_COMM_WORLD);
     end = MPI_Wtime();
 
-    ImplementMasterMPI(rank);
+    return ImplementMasterMPI(rank, matrixa, matrixb, matrixc);
 
     MPI_Finalize();
     

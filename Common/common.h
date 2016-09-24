@@ -1,16 +1,16 @@
 /* Represantation of the Matrix inside the program, along with its functions */
 
-struct MatrixItem {
+typedef struct {
     int row;
     int column;
     double data;
-};
+} MatrixItem;
 
-struct Matrix {
+typedef struct {
     int sizex;
     int sizey;
     MatrixItem** items;
-};
+} Matrix;
 
 /* Matrix functions */
 
@@ -32,3 +32,4 @@ double* CreateHorizontalMatrix(int sizex, int sizey);
 Matrix* MultiplyMatrixes(Matrix* matrixa, Matrix* matrixb);
 double** CreateEmptyDataSet(int sizex, int sizey);
 int CheckIfEquals(double* matrixa, double* matrixb, int sizex, int sizey);
+void MatrixMultiply(int size, double* matrixa, double* matrixb, double* matrixc);

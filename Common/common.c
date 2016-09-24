@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "common.h"
 
 /* This function creates a matrix and returns it */
 Matrix* CreateMatrix(int sizex, int sizey, double** dataz) {
@@ -24,11 +25,11 @@ Matrix* CreateMatrix(int sizex, int sizey, double** dataz) {
         matrix->items[i] = malloc(sizey * sizeof(MatrixItem));
         if(matrix->items[i] == NULL) return NULL;
         for(j = 0; j < sizey; j++) {
-            if(matrix->items[i][j] != NULL) {
-                matrix->items[i][j]->row = i;
-                matrix->items[i][j]->column = j;
-                matrix->items[i][j]->data = dataz[i][j];
-            } 
+            // if(matrix->items[i][j] != NULL) {
+                matrix->items[i][j].row = i;
+                matrix->items[i][j].column = j;
+                matrix->items[i][j].data = dataz[i][j];
+            //} 
         }
     }
 
@@ -46,7 +47,7 @@ Matrix* InsertMatrixItem(Matrix* matrix, MatrixItem* item) {
 
     for(i = 0; i < matrix->sizex; i++) {
         for(j = 0; j < matrix->sizey; j++) {
-            matrix->items[i][j] = item;
+            matrix->items[i][j] = *item;
         }
     }
 
@@ -64,9 +65,9 @@ void PrintMatrix(Matrix* matrix) {
 
     for(i = 0; i < matrix->sizex; i++) {
         for(j = 0; j < matrix->sizey; j++) {
-            if((matrix->items[i][j])->data[0] != NULL) {
-                printf(" %2f ", (matrix->items[i][j])->data[0]);
-            }
+            // if((matrix->items[i][j]).data[0] != NULL) {
+                printf(" %2f ", (matrix->items[i][j]).data);
+            //}
         }
         printf("\n");
     }
@@ -79,7 +80,7 @@ void ExtractMatrixInformation(Matrix* matrix, double** data) {
 
     for(i = 0; i < matrix->sizex; i++) {
         for(j = 0; j < matrix->sizey; j++) {
-            matrix->items[i][j]->data = data[i][j];
+            matrix->items[i][j].data = data[i][j];
         }
     }
 }
@@ -93,18 +94,18 @@ void LeftShiftMatrix(Matrix* matrix, int blockSize, int initialBlock) {
     int step = blockSize;
     Matrix* middle = NULL;
 
-    middle = CreateMatrix(1, matrix->sizey, matrix);
+    middle = CreateMatrix(1, matrix->sizey, CreateEmptyDataSet(matrix->sizex, matrix->sizey));
     for(k = 0, s = 0; k < matrix->sizey; k+= blockSize, s++) {
         for(i = k; i < (k + blockSize); i++) {
             if(initialBlock > 0) {
                 step = s * blockSize;
             }
             for(j = 0; j < matrix->sizey; j++) {
-                middle->items[0][j]->data = matrix->items[i][(j + step)
-                                            % matrix->sizey];
+                middle->items[0][j].data = matrix->items[i][(j + step)
+                                            % matrix->sizey].data;
             }
             for(j = 0; j < matrix->sizey; j++) {
-                matrix->items[i][j]->data = middle->items[0][j]->data;
+                matrix->items[i][j].data = middle->items[0][j].data;
             }
         }
     }
@@ -119,18 +120,18 @@ void UpShiftMatrix(Matrix* matrix, int blockSize, int initialBlock) {
     int step = blockSize;
     Matrix* middle = NULL;
 
-    middle = CreateMatrix(1, matrix->sizex, matrix);
+    middle = CreateMatrix(1, matrix->sizex, CreateEmptyDataSet(matrix->sizex, matrix->sizey));
     for(k = 0, s = 0; k < matrix->sizex; k+= blockSize, s++) {
         for(i = k; i < (k + blockSize); i++) {
             if(initialBlock > 0) {
                 step = s * blockSize;
             }
             for(j = 0; j < matrix->sizex; j++) {
-                middle->items[0][j]->data = matrix->items[(j + step)
-                                            % matrix->sizex][i];
+                middle->items[0][j].data = matrix->items[(j + step)
+                                            % matrix->sizex][i].data;
             }
             for(j = 0; j < matrix->sizex; j++) {
-                matrix->items[i][j]->data = middle->items[0][j]->data;
+                matrix->items[i][j].data = middle->items[0][j].data;
             }
         }
     }
@@ -145,18 +146,18 @@ void RightShiftMatrix(Matrix* matrix, int blockSize, int initialBlock) {
     int step = blockSize;
     Matrix* middle = NULL;
 
-    middle = CreateMatrix(1, matrix->sizey, matrix);
+    middle = CreateMatrix(1, matrix->sizey, CreateEmptyDataSet(matrix->sizex, matrix->sizey));
     for(k = 0, s = 0; k < matrix->sizey; k+= blockSize, s++) {
         for(i = k; i < (k + blockSize); i++) {
             if(initialBlock > 0) {
                 step = s * blockSize;
             }
             for(j = 0; j < matrix->sizey; j++) {
-                middle->items[matrix->sizey - 1][j]->data = matrix->items[(j + step)
-                                            % matrix->sizey][i];
+                middle->items[matrix->sizey - 1][j].data = matrix->items[(j + step)
+                                            % matrix->sizey][i].data;
             }
             for(j = 0; j < matrix->sizey; j++) {
-                matrix->items[matrix->sizey - 1][j]->data = middle->items[0][j]->data;
+                matrix->items[matrix->sizey - 1][j].data = middle->items[0][j].data;
             }
         }
     }
@@ -171,18 +172,18 @@ void DownShiftMatrix(Matrix* matrix, int blockSize, int initialBlock) {
     int step = blockSize;
     Matrix* middle = NULL;
 
-    middle = CreateMatrix(1, matrix->sizex, matrix);
+    middle = CreateMatrix(1, matrix->sizex, CreateEmptyDataSet(matrix->sizex, matrix->sizey));
     for(k = 0, s = 0; k < matrix->sizex; k+= blockSize, s++) {
         for(i = k; i < (k + blockSize); i++) {
             if(initialBlock > 0) {
                 step = s * blockSize;
             }
             for(j = 0; j < matrix->sizex; j++) {
-                middle->items[matrix->sizex - 1][j]->data = matrix->items[(j + step)
-                                            % matrix->sizex][i];
+                middle->items[matrix->sizex - 1][j].data = matrix->items[(j + step)
+                                            % matrix->sizex][i].data;
             }
             for(j = 0; j < matrix->sizex; j++) {
-                matrix->items[matrix->sizex - 1][j]->data = middle->items[0][j]->data;
+                matrix->items[matrix->sizex - 1][j].data = middle->items[0][j].data;
             }
         }
     }
@@ -194,11 +195,29 @@ void MultiplyMatrix(Matrix* matrix, Matrix* matrixa, Matrix* matrixb) {
     int j = 0;
     int k = 0;
 
-    for(i = 0; i < matrixa->row; i++) {
-        for(j = 0; j < matrixb->column; j++) {
-            for(k = 0; k < matrixa->column) {
-                (matrix->items[i][j])->data += (matrixa->items[i][k])->data * 
-                                                (matrixb->items[k][j])->data;
+    for(i = 0; i < matrixa->sizex; i++) {
+        for(j = 0; j < matrixb->sizey; j++) {
+            for(k = 0; k < matrixa->sizex; k++) {
+                (matrix->items[i][j]).data += (matrixa->items[i][k]).data * 
+                                                (matrixb->items[k][j]).data;
+            }
+        }
+    }
+}
+
+void MatrixMultiply(int size, double* matrixa, double* matrixb, double* matrixc) {
+    int i = 0;
+    int j = 0;
+    int k = 0;
+
+    if(size == 0) return;
+
+    if(matrixa == NULL || matrixb == NULL || matrixc == NULL) return;
+
+    for(i = 0; i < size; i++) {
+        for(j = 0; j < size; j++) {
+            for(k = 0; k < size; k++) {
+                matrixc[i*size+j] += matrixa[i*size+k]*matrixb[k*size+j];
             }
         }
     }
@@ -206,7 +225,7 @@ void MultiplyMatrix(Matrix* matrix, Matrix* matrixa, Matrix* matrixb) {
 
 /* This function creates an array that can be matched with a matrix */
 double* CreateArrayAsMatrix(int i, int j) {
-    double* arr = malloc(i * j sizeof(double));
+    double* arr = malloc((i * j)* sizeof(double));
     if(arr == NULL) return NULL;
     
     return arr;
@@ -221,14 +240,16 @@ double* RandomizeArray(double* arr, int i, int j) {
     for(k = 0; k < i*j; k++) {
         arr[k] = rand() % 10 + 1;
     }
+
+    return arr;
 }
 
 /* Simple AsEquals function for arrays */
 int ArrayAsEquals(double* arr1, double* arr2, int i, int j) {
     int k = 0;
 
-    if(arr1 == NULL) return NULL;
-    if(arr2 == NULL) return NULL;
+    if(arr1 == NULL) return 0;
+    if(arr2 == NULL) return 0;
 
     for(k = 0; k < i*j; k++) {
         if(arr1[i] != arr2[i]) {
@@ -297,21 +318,24 @@ Matrix* MultiplyMatrixes(Matrix* matrixa, Matrix* matrixb) {
 
     if(matrixa == NULL || matrixb == NULL) return NULL;
     
-    if(matrixa.sizex == 0 || matrixa.sizey == 0) return NULL;
-    if(matrixb.sizex == 0 || matrixb.sizey == 0) return NULL;
+    if(matrixa->sizex == 0 || matrixa->sizey == 0) return NULL;
+    if(matrixb->sizex == 0 || matrixb->sizey == 0) return NULL;
 
-    if(matrixa.sizex != matrixb.sizex) return NULL;
-    if(matrixa.sizey != matrixb.sizey) return NULL;
+    if(matrixa->sizex != matrixb->sizex) return NULL;
+    if(matrixa->sizey != matrixb->sizey) return NULL;
 
-    matrix = CreateMatrix(matrixa.sizex, matrixa.sizey, CreateEmptyDataSet())
+    matrix = CreateMatrix(matrixa->sizex, matrixa->sizey, CreateEmptyDataSet(matrix->sizex, matrix->sizey));
 
-    for(i = 0; i < matrixa.sizex; i++) {
-        for(j = 0; j < matrixa.sizey; j++) {
-            for(k = 0; k < matrixa.sizex; k++) {
-                matrix[i*matrixa.sizex+j] += matrixa[i*n+k]*matrixb[k*n+j];
+    for(i = 0; i < matrixa->sizex; i++) {
+        for(j = 0; j < matrixa->sizey; j++) {
+            for(k = 0; k < matrixa->sizex; k++) {
+                matrix->items[i*matrixa->sizex+j]->data += matrixa->items[i*matrix->sizex+k]->data
+                                                        *matrixb->items[k*matrix->sizex+j]->data;
             }
         }
     }
+
+    return matrix;
 }
 
 double* MultiplyMatrixesDouble(double* matrixa, double* matrixb, int size) {
@@ -330,10 +354,12 @@ double* MultiplyMatrixesDouble(double* matrixa, double* matrixb, int size) {
     for(i = 0; i < size; i++) {
         for(j = 0; j < size; j++) {
             for(k = 0; k < size; k++) {
-                returnTable[i*size+j] += matrixa[i*n+k] * matrixb[k*size+j];
+                returnTable[i*size+j] += matrixa[i*size+k] * matrixb[k*size+j];
             }
         }
     }
+
+    return returnTable;
 }
 
 /* Create a 2D matrix that has 1D structure */
@@ -349,6 +375,8 @@ double* CreateHorizontalMatrix(int sizex, int sizey) {
     for(i = 0; i < sizex*sizey; i++) {
         array[i] = rand() % 100 + 1;
     }
+
+    return array;
 }
 
 int CheckIfEquals(double* matrixa, double* matrixb, int sizex, int sizey) {
@@ -360,5 +388,5 @@ int CheckIfEquals(double* matrixa, double* matrixb, int sizex, int sizey) {
         if(matrixa[i] != matrixb[i]) return 0;
     }
 
-    return true;
+    return 1;
 }
