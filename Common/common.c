@@ -314,6 +314,28 @@ Matrix* MultiplyMatrixes(Matrix* matrixa, Matrix* matrixb) {
     }
 }
 
+double* MultiplyMatrixesDouble(double* matrixa, double* matrixb, int size) {
+    int i = 0;
+    int j = 0;
+    int k = 0;
+    double* returnTable = NULL;
+
+    if(matrixa == NULL || matrixb == NULL) return NULL;
+
+    returnTable = CreateHorizontalMatrix(size, size);
+    if(returnTable == NULL) return NULL;
+
+    if(size == 0) return NULL;
+
+    for(i = 0; i < size; i++) {
+        for(j = 0; j < size; j++) {
+            for(k = 0; k < size; k++) {
+                returnTable[i*size+j] += matrixa[i*n+k] * matrixb[k*size+j];
+            }
+        }
+    }
+}
+
 /* Create a 2D matrix that has 1D structure */
 double* CreateHorizontalMatrix(int sizex, int sizey) {
     int i = 0;
@@ -327,4 +349,16 @@ double* CreateHorizontalMatrix(int sizex, int sizey) {
     for(i = 0; i < sizex*sizey; i++) {
         array[i] = rand() % 100 + 1;
     }
+}
+
+int CheckIfEquals(double* matrixa, double* matrixb, int sizex, int sizey) {
+    int i = 0;
+
+    if(matrixa == NULL || matrixb == NULL) return 0;
+
+    for(i = 0; i < sizex*sizey; i++) {
+        if(matrixa[i] != matrixb[i]) return 0;
+    }
+
+    return true;
 }
