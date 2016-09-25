@@ -45,8 +45,6 @@ void RunMPI(int size, double* blocksa, double* blocksb, double* blocksc, double*
     int size_n = size;
     int indentation_column = 0;
 
-    printf("Inside RUNMPI \n");
-
     MPI_Status status;
     MPI_Comm commloc;
 
@@ -62,6 +60,7 @@ void RunMPI(int size, double* blocksa, double* blocksb, double* blocksc, double*
     MPI_Cart_coords(commloc, rank2D, 2, coords);
 
     MPI_Cart_shift(commloc, 1, -1, &rightrank, &leftrank);
+
     MPI_Cart_shift(commloc, 0, -1, &downrank, &uprank);
 
     local = size/dimensions[0];
@@ -144,22 +143,17 @@ int main(int argc, char* argv[]) {
     matrixa = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
     matrixb = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
     matrixc = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
-    printf("Start \n");
+
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &processors); 
-    printf("Initialization successful \n");
     if(processors == 0 ) return -1;
 
     dimension = TABLE_SIZE/sqrt(processors);
-    printf("Dimension : %d \n", dimension);
     blocks = TABLE_SIZE/dimension;
 
     blocksa = CreateBlockTables(processors, dimension*dimension);
     blocksb = CreateBlockTables(processors, dimension*dimension);
     blocksc = CreateBlockTables(processors, dimension*dimension);
-
-    printf("Blocks created \n");
-    printf("Blocks : %d \n", blocks);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -168,8 +162,6 @@ int main(int argc, char* argv[]) {
 
     columnBlock = rank % blocks;
     rowBlock = (rank - columnBlock) / blocks;
-
-    printf("Ranks given \n");
 
     for(i = rowBlock * dimension; i < rowBlock * dimension + dimension; i++) {
         for(j = columnBlock * dimension; j < columnBlock * dimension + dimension; j++) {
@@ -189,7 +181,7 @@ int main(int argc, char* argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
     end = MPI_Wtime();
 
-    return ImplementMasterMPI(rank, matrixa, matrixb, matrixc);
+    if(ImplementMasterMPI(rank, matrixa, matrixb, matrixc) == -2) return -1;
 
     MPI_Finalize();
     
