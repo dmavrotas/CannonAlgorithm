@@ -33,8 +33,115 @@ double** CreateBlockTables(int processors, int process_block) {
     return table;
 }
 
-void RunMPI(int size, double* blocksa, double* blocksb, double* blocksc, double* matrix, MPI_Comm comm) {
+double* Copy_Block(double* matrix, int size) {
     int i = 0;
+
+    double* dest_matrix = malloc((size * size) * sizeof(double));
+
+    if(dest_matrix == NULL) return NULL;
+
+    for(i = 0; i < size * size; i++) {
+        dest_matrix[i] = matrix[i];
+    }
+
+    return dest_matrix;
+}
+
+double** Copy_Blocks(double** matrix, int sizex, int sizey) {
+    int i = 0;
+    int j = 0;
+    double** dest_matrix = NULL;
+
+    dest_matrix = malloc(sizex * sizeof(double*));
+
+    if(dest_matrix == NULL) return NULL;
+
+    for(i = 0; i < sizey*sizey; i++) {
+        dest_matrix[i] = malloc((sizey*sizey) * sizeof(double));
+
+        if(dest_matrix[i] == NULL) return NULL;
+    }
+
+    for(i = 0; i < sizex; i++) {
+        for(j = 0; j < sizey*sizey; j++) {
+            dest_matrix[i][j] = matrix[i][j];
+        }
+    }
+}
+
+double** Create_Block(int process_block) {
+    int i = 0;
+    double** matrix = NULL;
+
+    matrix = malloc(process_block * sizeof(double*));
+    if(matrix == NULL) return NULL;
+
+    for(i = 0; i < process_block; i++) {
+        matrix[i] = malloc((BLOCK_SIZE * BLOCK_SIZE) * sizeof(double));
+
+        if(matrix[i] == NULL) return NULL;
+    }
+
+    return matrix;
+}
+
+void Shift_Left(double** matrix, int sizex, int sizey) {
+    int i = 0;
+    int j = 0;
+    int k = 0;
+    int step = 0;
+
+    int row = 0;
+    int col = 0;
+    int position = 0;
+
+    step = (int)sqrt(sizex);
+    int out[step];
+
+    for(i = 0, col = 0; i < sizex; i += step, col++) {
+        for(k = 0; k < sizey * sizey; k++) {
+            for(j = i, row = 0; j < (i + step); j++, row++) {
+                position = j + 1;
+                if(position >= (step + i)) {
+                    position = col * step;
+                }
+
+                out[r] = matrix[position][k];
+            }
+            for(j = i, row = 0; j < i + step; j++, row++) {
+                matrix[j][k] = out[row];
+            }
+        }
+    }
+}
+
+void Shift_Up(double** matrix, int sizex, int sizey) {
+    int i = 0;
+    int j = 0;
+    int k = 0;
+    int step = 0;
+
+    int row = 0;
+    int col = 0;ß
+
+    step = (int)sqrt(sizex);
+    int out[step];
+
+    for(k = 0; k < sizey * sizey; k++) {
+        for(i = 0; i < sizex; i++) {
+            out[i] = matrix[(i+step) % sizex][k];
+        }
+        for(i = 0; i < sizex; i++) {
+            matrix[j][k] = out[i];
+        }
+    }
+}
+ 
+void RunMPI(int size, double** blocksa, double** blocksb, double** blocksc, 
+            double* matrix, int process_block, MPI_Comm comm) {
+    int i = 0;
+    int j = 0;
+    int limit = 0;
     int local = 0;
     int np = 0;
     int dimensions[2];
@@ -53,6 +160,16 @@ void RunMPI(int size, double* blocksa, double* blocksb, double* blocksc, double*
     int size_n = size;
     int indentation_column = 0;
 
+    double** matrixa_buffer = NULL;
+    double** matrixb_buffer = NULL;
+    double** matrix_copy = NULL;
+
+    double** matrixa = NULL;
+    double** matrixb = NULL;
+
+    double* dest_matrixa = NULL;
+    double* dest_matrixb = NULL;
+
     MPI_Status status;
     MPI_Comm commloc;
 
@@ -68,8 +185,52 @@ void RunMPI(int size, double* blocksa, double* blocksb, double* blocksc, double*
     MPI_Cart_coords(commloc, rank2D, 2, coords);
 
     MPI_Cart_shift(commloc, 1, -1, &rightrank, &leftrank);
-
     MPI_Cart_shift(commloc, 0, -1, &downrank, &uprank);
+
+    matrixa_buffer = Create_Block(process_block);
+    matrixb_buffer = Create_Block(process_block);
+    matrix_copy  = Creat_Block(process_block);
+
+    matrix_copy = Copy_Blocks(&blocksb[0], process_block, BLOCK_SIZE);
+
+    limit = (int)sqrt(process_block);
+
+    matrixa = malloc((BLOCK_SIZE * BLOCK_SIZE) * sizeof(double));
+    if(matrixa == NULL) return;
+
+    matrixb = malloc((BLOCK_SIZE * BLOCK_SIZE) * sizeof(double));
+    if(matrixb == NULL) return;
+
+    dest_matrixa = malloc((BLOCK_SIZE * BLOCK_SIZE) * sizeof(double));
+    if(dest_matrixa == NULL) return;
+
+    dest_matrixb = malloc((BLOCK_SIZE * BLOCK_SIZE) * sizeof(double));
+    if(dest_matrixb == NULL) return;
+
+    matrixa_buffer = Copy_Blocks(&blocksa[0], process_block, BLOCK_SIZE);
+
+    for(i = 0; i < limit; i++) {
+        matrixb_buffer = Copy_Blocks(&matrix_copy[0], process_block, BLOCK_SIZE);
+        int rowdisplay = [coords[0] + i * sqrt(np));
+
+        if((coords[1] - rowdisplay) < 0) {
+            Shift_Left(&matrixa_buffer[0], process_blocks, BLOCK_SIZE);
+        }
+
+        for(j = 0; j < limit; j++) {
+            int columndisplay = (coords[1] + j * sqrt(np));
+
+            if((coords[0] - columndisplay) > 0) {
+                Shift_Up(&matrixb_buffer[0], process_block, BLOCK_SIZE);
+            }
+
+            matrixa = Copy_Block(&matrixa_buffer[i * limit * j][0], BLOCK_SIZE);
+            matrixb = Copy_Block(&matrixb_buffer[i * limit * j][0], BLOCK_SIZE);
+
+            MPI_Cart_shift(commloc, 1, -rowdisplay, &shiftright, &shiftleft);
+            MPI_Sendrecv(matrixa, BLOCK_SIZE * BLOCK_SIZE, MPI_INT, shiftleft, 1, dest)
+        }
+    }
 
     local = size/dimensions[0];
 
