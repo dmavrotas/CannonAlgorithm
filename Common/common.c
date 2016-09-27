@@ -363,7 +363,7 @@ double* MultiplyMatrixesDouble(double* matrixa, double* matrixb, int size) {
 }
 
 /* Create a 2D matrix that has 1D structure */
-double* CreateHorizontalMatrix(int sizex, int sizey) {
+double* CreateHorizontalMatrix(int sizex, int sizey, int fillTableWithData) {
     int i = 0;
     double* array = NULL;
 
@@ -372,8 +372,10 @@ double* CreateHorizontalMatrix(int sizex, int sizey) {
     array = malloc((sizex*sizey)* sizeof(double));
     if(array == NULL) return NULL;
 
-    for(i = 0; i < sizex*sizey; i++) {
-        array[i] = rand() % 100 + 1;
+    if(fillTableWithData == 1) {
+        for(i = 0; i < sizex*sizey; i++) {
+            array[i] = rand() % 100 + 1;
+        }
     }
 
     return array;

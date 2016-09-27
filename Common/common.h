@@ -28,7 +28,7 @@ double* RandomizeArray(double* arr, int i, int j);
 int ArrayAsEquals(double* arr1, double* arr2, int i, int j);
 double** CreateRandomDataSet(int sizex, int sizey);
 double* MultiplyMatrixesDouble(double* matrixa, double* matrixb, int size);
-double* CreateHorizontalMatrix(int sizex, int sizey);
+double* CreateHorizontalMatrix(int sizex, int sizey, bool fillTableWithData));
 Matrix* MultiplyMatrixes(Matrix* matrixa, Matrix* matrixb);
 double** CreateEmptyDataSet(int sizex, int sizey);
 int CheckIfEquals(double* matrixa, double* matrixb, int sizex, int sizey);

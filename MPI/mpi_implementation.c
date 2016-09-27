@@ -6,20 +6,28 @@
 #include "common.h"
 
 #define TABLE_SIZE 400
+#define BLOCK_SIZE 10
 
-double** CreateBlockTables(int sizex, int sizey) {
-    double** table = NULL;
+double** CreateBlockTables(int processors, int process_block) {
+    double*** table = NULL;
     int i = 0;
+    int j = 0;
     
     if(sizex == 0 || sizey == 0) return NULL;
 
-    table = malloc(sizex * sizeof(double*));
+    table = malloc(processors * sizeof(double**));
     if(table == NULL) return NULL;
 
-    for(i = 0; i < sizex; i++) {
-        table[i] = malloc(sizey * sizeof(double));
-
+    for(i = 0; i < processors; i++) {
+        table[i] = malloc(sizeof(double*) * process_block);
+        
         if(table[i] == NULL) return NULL;
+
+        for(j = 0; j < process_block; j++) {
+            table[i][j] = malloc((BLOCK_SIZE*BLOCK_SIZE) * sizeof(double));
+            
+            if(table[i][j] == NULL) return NULL;
+        }
     }
 
     return table;
@@ -120,70 +128,83 @@ int ImplementMasterMPI(int rank, double* matrixa, double* matrixb, double* matri
 int main(int argc, char* argv[]) {
     int processors = 0;
     int dimension = 0;
-    int maxRowBlock = 0;
-    int maxColumnBlock = 0;
-    int rowBlock = 0;
-    int columnBlock = 0;
-    int i = 0;
-    int j = 0;
-    int blocks = 0;
-    int rank = 0;
-    int current_block = 0;
+    int dimension_block = 0;
+    int process_block = 0;
+    int row_pq = 0;
+    int column_pq = 0;
+    int row_mn = 0;
+    int column_mn = 0;
+    int rowIndex = 0;
+    int columnIndex = 0;
+    int rowOffset = (TABLE_SIZE / dimension_block);
+    int rowBegin = 0;
+    int rowEnd = 0;
+    int columnBegin = 0;
+    int columnEnd = 0;
+    int row = 0;
+    int column = 0;
+    int step = 0;
     double start = 0;
     double end = 0;
 
-    double** blocksa = NULL;
-    double** blocksb = NULL;
-    double** blocksc = NULL;
+    double*** blocksa = NULL;
+    double*** blocksb = NULL;
+    double*** blocksc = NULL;
 
     double* matrixa = NULL;
     double* matrixb = NULL;
     double* matrixc = NULL;
 
-    matrixa = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
-    matrixb = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
-    matrixc = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE);
+    matrixa = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE, 1);
+    matrixb = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE, 1);
+    matrixc = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE, 0);
 
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &processors); 
     if(processors == 0 ) return -1;
 
-    dimension = TABLE_SIZE/sqrt(processors);
-    blocks = TABLE_SIZE/dimension;
+    dimension = sqrt(processors);
+    dimension_block = (TABLE_SIZE / BLOCK_SIZE);
+    process_block = (dimension_block / dimension) * (dimension_block / dimension);
 
-    blocksa = CreateBlockTables(processors, dimension*dimension);
-    blocksb = CreateBlockTables(processors, dimension*dimension);
-    blocksc = CreateBlockTables(processors, dimension*dimension);
+    blocksa = CreateBlockTables(processors, process_block);
+    blocksb = CreateBlockTables(processors, process_block);
+    blocksc = CreateBlockTables(processors, process_block);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    maxRowBlock = dimension;
-    maxColumnBlock = dimension;
+    row_pq = (rank / dimension);
+    column_pq = (rank % dimension);
 
-    columnBlock = rank % blocks;
-    rowBlock = (rank - columnBlock) / blocks;
+    for(row_mn = row_pq; column_mn < dimension_block; row_mn += dimension) {
+        rowBegin = row_mn * rowOffset;
+        rowEnd = rowBegin + rowOffset;
 
-    for(i = rowBlock * dimension; i < rowBlock * dimension + dimension; i++) {
-        for(j = columnBlock * dimension; j < columnBlock * dimension + dimension; j++) {
-            blocksa[rank][current_block] = matrixa[i * TABLE_SIZE + j];
-            blocksb[rank][current_block] = matrixb[i * TABLE_SIZE + j];
-            blocksc[rank][current_block] = 0;
-            current_block++;
+        for(column_mn = column_pq; column_mn < dimension_block; column_mn += dimension, step++) {
+            columnBegin = column_mn * rowOffset;
+            columnEnd = columnBegin + rowOffset;
+
+            for(rowIndex = rowBegin, row = 0; rowIndex < rowEnd; rowIndex++, row++) {
+                for(columnIndex = columnBegin, step = 0; columnIndex < columnEnd; row++, step++) {
+                    blocksa[rank][step][row * BLOCK_SIZE + step] = matrixa[rowIndex * TABLE_SIZE + columnIndex];
+                    blocksb[rank][step][row * BLOCK_SIZE + step] = matrixb[rowIndex * TABLE_SIZE + columnIndex];
+                    blocksb[rank][step][row * BLOCK_SIZE + step] = 0;
+                }
+            }
         }
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
 
     start = MPI_Wtime();
-    
-    RunMPI(TABLE_SIZE, blocksa[rank], blocksb[rank], blocksc[rank], &matrixc[0], MPI_COMM_WORLD);
 
-    MPI_Barrier(MPI_COMM_WORLD);
     end = MPI_Wtime();
 
-    if(ImplementMasterMPI(rank, matrixa, matrixb, matrixc) == -2) return -1;
+    if(rank == 0) {
+        double* matrixd = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE, 0);
+    }
 
     MPI_Finalize();
-    
+
     return 0;
 }
