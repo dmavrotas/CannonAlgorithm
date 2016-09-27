@@ -228,7 +228,9 @@ void RunMPI(int size, double** blocksa, double** blocksb, double** blocksc,
             matrixb = Copy_Block(&matrixb_buffer[i * limit * j][0], BLOCK_SIZE);
 
             MPI_Cart_shift(commloc, 1, -rowdisplay, &shiftright, &shiftleft);
-            MPI_Sendrecv(matrixa, BLOCK_SIZE * BLOCK_SIZE, MPI_INT, shiftleft, 1, dest)
+            MPI_Sendrecv(matrixa, BLOCK_SIZE * BLOCK_SIZE, MPI_INT, shiftleft, 1, 
+                        dest_matrixa, BLOCK_SIZE*BLOCK_SIZE, MPI_INT, shiftright, 
+                        commloc, &status);
         }
     }
 
