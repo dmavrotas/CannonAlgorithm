@@ -136,6 +136,20 @@ void Shift_Up(double** matrix, int sizex, int sizey) {
         }
     }
 }
+
+void Update(int size, double* matrixa, double* matrixb, double* matrixc) {
+    int i = 0;
+    int j = 0;
+    int k = 0;
+
+    for(i = 0; i < size; i++) {
+        for(j = 0; j < size; j++) {
+            for(k = 0; k < size; k++) {
+                matrixc[i * n + j] += matrixa[i * n + k] * matrixb[k * n + j];
+            }
+        }
+    }
+}
  
 void RunMPI(int size, double** blocksa, double** blocksb, double** blocksc, 
             double* matrix, int process_block, MPI_Comm comm) {
@@ -231,43 +245,89 @@ void RunMPI(int size, double** blocksa, double** blocksb, double** blocksc,
             MPI_Sendrecv(matrixa, BLOCK_SIZE * BLOCK_SIZE, MPI_INT, shiftleft, 1, 
                         dest_matrixa, BLOCK_SIZE*BLOCK_SIZE, MPI_INT, shiftright, 
                         commloc, &status);
+
+            MPI_Cart_shift(commloc, 0, -columndisplay, &shiftleft, &shiftright);
+            MPI_Sendrecv(matrixb, BLOCK_SIZE * BLOCK_SIZE, MPI_INT, shiftleft, 1,
+                        dest_matrixb, BLOCK_SIZE * BLOCK_SIZE, MPI_INT, shiftright,
+                        1, commloc, &status);
+
+            &blocksa[i * limit + j][0] = Copy_Block(&dest_matrixa[0], BLOCK_SIZE);
+            &blocksb[i * limit + j][0] = Copy_Block(&dest_matrixb[0], BLOCK_SIZE);
         }
     }
 
-    local = size/dimensions[0];
+    int sqrtIndex = (int)sqrt(np);
+    int dimension = size / BLOCK_SIZE;
+    int maximum = dimension / sqrtIndex;
 
-    MPI_Cart_shift(commloc, 1, -coords[0], &shiftright, &shiftleft);
-	MPI_Sendrecv_replace(blocksa, local*local, MPI_INT, shiftleft, 1, shiftright, 1, commloc, &status);
-	MPI_Cart_shift(commloc, 0, -coords[1], &shiftright, &shiftleft);
-	MPI_Sendrecv_replace(blocksb, local*local, MPI_INT, shiftleft, 1, shiftright, 1, commloc, &status);
+    int ia = 0;
+    int ja = 0;
+    int i_prime = 0;
+    int j_prime = 0;
 
-    for (i=0; i<dimensions[0]; i++)
-	{
-		MatrixMultiply(local, blocksa, blocksb, blocksc);
-		
-		MPI_Sendrecv_replace(blocksa, local*local, MPI_INT, leftrank, 1, rightrank, 1, commloc, &status);
-		
-		MPI_Sendrecv_replace(blocksb, local*local, MPI_INT, uprank, 1, downrank, 1, commloc, &status);
-	}
+    for(ia = 0; i < sqrtIndex; ia++) {
+        for(i = 0; i < maximum; i++) {
+            for(j = 0; j < maximum; j++) {
+                for(ja = 0; ja < maximum; ja++) {
+                    i_prime = (j % dimension + ja) % (dimension / sqrtIndex);
+                    j_prime = (i % dimension + ja) % (dimension / sqrtIndex);
+                    Update(BLOCK_SIZE, &blocksa[i * maximum + j_prime][0], 
+                            &blocksb[i_prime * maximum + j][0], 
+                            &blocksc[i * maximum + j][0]);
+                }
+            }
+        }
 
-    MPI_Cart_shift(commloc, 1, +coords[0], &shiftright, &shiftleft);
-	MPI_Sendrecv_replace(blocksa, local*local, MPI_INT,shiftleft, 1, shiftright, 1, commloc, &status);
-	MPI_Cart_shift(commloc, 0, +coords[1], &shiftright, &shiftleft);
-	MPI_Sendrecv_replace(blocksb, local*local, MPI_INT, shiftleft, 1, shiftright, 1, commloc, &status);
-	MPI_Comm_free(&commloc);
+        if(coords[1] == 0) {
+            Shift_Left(&blocksa[0], process_block, BLOCK_SIZE);
+        }
 
-    for(indentation = 0; indentation < local; indentation++) {
-        for(indentation_column = 0; indentation_column < local; indentation_column++) {
-            matrix[(coords[0]*local+indentation) + (coords[1]*local+indentation_column)] =
-                    blocksc[indentation*local+indentation_column];
+        for(i = 0; i < process_block; i++) {
+            MPI_Sendrecv_replace(blocksa[i], BLOCK_SIZE * BLOCK_SIZE, MPI_INT, 
+                                leftrank, 1, rightrank, commloc, &status);
+        }
+
+        for(coords[0] == 0) {
+            Shift_Up(&blocksb[0], process_block, BLOCK_SIZE);
+        }
+
+        for(i = 0; i < process_block; i++) {
+            MPI_Sendrecv_replace(blocksb[i], BLOCK_SIZE * BLOCK_SIZE, MPI_INT, 
+                                uprank, 1, downrank, commloc, &status);
+        }
+    }
+
+    MPI_Comm_free(&commloc);
+
+    int process_number = 0;
+    int blockIndex = 0;
+    int position = 0;
+
+    process_number = rank;
+
+    int column_process = process_number % (int)sqrt(np);
+    int row_process = (process_number - column_process) / sqrt(np);
+
+    for(blockIndex = 0; blockIndex < process_block; blockIndex++) {
+        int column_block = blockIndex % (int)sqrt(process_block);
+        int row_block = (blockIndex - column_block) / sqrt(process_block);
+
+        for(position = 0; position < BLOCK_SIZE * BLOCK_SIZE; position++) {
+            int column_position = position % BLOCK_SIZE;
+            int row_position = (position - column_position) / BLOCK_SIZE;
+
+            int big_row = row_block * sqrt(np) + row_process;
+            int big_column = column_block * sqrt(np) + column_process;
+            matrix[big_row * size * BLOCK_SIZE + row_position * size + big_column * BLOCK_SIZE + column_position] = 
+                blocksc[blockIndex][position];
         }
     }
 
     if(rank != 0) {
-        MPI_Reduce(matrix, matrix, size_n*size_n, MPI_INT, MPI_SUM, 0, comm);
+        MPI_Reduce(matrix, matrix, np * process_block * BLOCK_SIZE * BLOCK_SIZE, MPI_INT, MPI_SUM, 0, comm);
     }
     else {
-        MPI_Reduce(MPI_IN_PLACE, matrix, size_n*size_n, MPI_INT, MPI_SUM, 0, comm);
+        MPI_Reduce(MPI_IN_PLACE, matrix, np * process_block * BLOCK_SIZE * BLOCK_SIZE, MPI_INT, MPI_SUM, 0, comm);
     }
 }
 
@@ -282,7 +342,7 @@ int ImplementMasterMPI(int rank, double* matrixa, double* matrixb, double* matri
 
         int equity = CheckIfEquals(matrixd, matrixc, TABLE_SIZE, TABLE_SIZE);
 
-        if(equity == 1) return 1;
+        if(equity == 1) return 0;
     }
 
     return -1;
@@ -361,13 +421,18 @@ int main(int argc, char* argv[]) {
 
     start = MPI_Wtime();
 
+    Update(TABLE_SIZE, &blocksa[rank][0], &blocksb[rank][0], &blocksc[rank][0], &matrixc[0], process_block, 
+            BLOCK_SIZE, MPI_COMM_WORLD);
+
     end = MPI_Wtime();
 
+    int result = 0;
+
     if(rank == 0) {
-        double* matrixd = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE, 0);
+        result = ImplementMasterMPI(rank, matrixa, matrixb, matrixc);
     }
 
     MPI_Finalize();
 
-    return 0;
+    return result;
 }
