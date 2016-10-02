@@ -189,8 +189,6 @@ void RunMPI(int size, double** blocksa, double** blocksb, double** blocksc,
     MPI_Comm_size(comm, &np);
     MPI_Comm_rank(comm, &rank);
 
-    printf("Rank achieved  \n");
-
     dimensions[0] = dimensions[1] = sqrt(np);
     periods[0] = periods[1] = 1;
 
@@ -202,15 +200,11 @@ void RunMPI(int size, double** blocksa, double** blocksb, double** blocksc,
     MPI_Cart_shift(commloc, 1, -1, &rightrank, &leftrank);
     MPI_Cart_shift(commloc, 0, -1, &downrank, &uprank);
 
-    printf("MPI World initialized \n");
-
     matrixa_buffer = Create_Block(process_block);
     matrixb_buffer = Create_Block(process_block);
     matrix_copy  = Create_Block(process_block);
 
     matrix_copy = Copy_Blocks(&blocksb[0], process_block, BLOCK_SIZE);
-
-    printf("Step 1 \n");
 
     limit = (int)sqrt(process_block);
 
@@ -228,18 +222,13 @@ void RunMPI(int size, double** blocksa, double** blocksb, double** blocksc,
 
     matrixa_buffer = Copy_Blocks(&blocksa[0], process_block, BLOCK_SIZE);
 
-    printf("Step 2 \n");
-
     for(i = 0; i < limit; i++) {
-        printf("i = %d \n", i);
         matrixb_buffer = Copy_Blocks(&matrix_copy[0], process_block, BLOCK_SIZE);
         int rowdisplay = (coords[0] + i * sqrt(np));
 
         if((coords[1] - rowdisplay) < 0) {
             Shift_Left(&matrixa_buffer[0], process_block, BLOCK_SIZE);
         }
-
-        printf("First Shift successful \n");
 
         for(j = 0; j < limit; j++) {
             int columndisplay = (coords[1] + j * sqrt(np));
@@ -248,12 +237,8 @@ void RunMPI(int size, double** blocksa, double** blocksb, double** blocksc,
                 Shift_Up(&matrixb_buffer[0], process_block, BLOCK_SIZE);
             }
 
-            printf("i = %d - j = %d \n", i, j);
-
-            printf("Copy Block 1 \n");
             Copy_Block(&matrixa_buffer[i * limit + j][0], &matrixa[0], BLOCK_SIZE);
             Copy_Block(&matrixb_buffer[i * limit + j][0], &matrixb[0], BLOCK_SIZE);
-            printf("Copy Block 2 \n");
 
             MPI_Cart_shift(commloc, 1, -rowdisplay, &shiftright, &shiftleft);
             MPI_Sendrecv(matrixa, BLOCK_SIZE * BLOCK_SIZE, MPI_INT, shiftleft, 1,
@@ -264,15 +249,11 @@ void RunMPI(int size, double** blocksa, double** blocksb, double** blocksc,
             MPI_Sendrecv(matrixb, BLOCK_SIZE * BLOCK_SIZE, MPI_INT, shiftleft, 1,
                         dest_matrixb, BLOCK_SIZE * BLOCK_SIZE, MPI_INT, shiftright,
                         1, commloc, &status);
-            printf("Copy Block 3 \n");
+            
             Copy_Block(&dest_matrixa[0], &blocksa[i * limit + j][0], BLOCK_SIZE);
             Copy_Block(&dest_matrixb[0], &blocksb[i * limit + j][0], BLOCK_SIZE);
-            printf("Copy Block 4 \n");
-            printf("Main MPI successful , i = %d - j = %d \n", i, j);
         }
     }
-
-    printf("Next step \n");
 
     int sqrtIndex = (int)sqrt(np);
     int dimension = size / BLOCK_SIZE;
@@ -349,6 +330,36 @@ void RunMPI(int size, double** blocksa, double** blocksb, double** blocksc,
     }
 }
 
+void Write_ToFile(int sizex, int sizey, double* matrix, char* filename) {
+    int ix = 0;
+    int iy = 0;
+    FILE *fp;
+
+    fp = fopen(filename, "w");
+    for (iy = sizey-1; iy >= 0; iy--) {
+        for (ix = 0; ix <= sizex-1; ix++) {
+            fprintf(fp, "%6.1f", *(matrix+ix*sizey+iy));
+            if (ix != sizex-1) fprintf(fp, " ");
+            else fprintf(fp, "\n");
+        }
+    }
+    fclose(fp);
+}
+
+void PrintFinalMatrix(int sizex, int sizey, double* matrix) {
+    int i = 0;
+	int j = 0;
+
+	for(i = 0; i < sizex; i++)
+	{
+		for(j = 0; j < sizey; j++)
+		{
+			printf("%6.1f\t", matrix[i*sizey+j]);
+		}
+		printf("\n");
+	}
+}
+
 int ImplementMasterMPI(int rank, double* matrixa, double* matrixb, double* matrixc) {
     if(rank == 0) {
         double* matrixd = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE, 0);
@@ -359,6 +370,8 @@ int ImplementMasterMPI(int rank, double* matrixa, double* matrixb, double* matri
         }
 
         int equity = CheckIfEquals(matrixd, matrixc, TABLE_SIZE, TABLE_SIZE);
+
+        Write_ToFile(TABLE_SIZE, TABLE_SIZE, matrixd, "final.dat");
 
         if(equity == 1) return 0;
         return 0;
@@ -396,15 +409,17 @@ int main(int argc, char* argv[]) {
     double* matrixa = NULL;
     double* matrixb = NULL;
     double* matrixc = NULL;
-    printf("Starting... \n");
+    
     matrixa = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE, 1);
     matrixb = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE, 1);
     matrixc = CreateHorizontalMatrix(TABLE_SIZE, TABLE_SIZE, 0);
-    printf("Tables created \n");
+    
+    Write_ToFile(TABLE_SIZE, TABLE_SIZE, matrixa, "initial.dat");
+
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &processors);
     if(processors == 0 ) return -1;
-    printf("Initialization \n");
+    
     dimension = sqrt(processors);
     dimension_block = (TABLE_SIZE / BLOCK_SIZE);
     process_block = (dimension_block / dimension) * (dimension_block / dimension);
@@ -414,8 +429,6 @@ int main(int argc, char* argv[]) {
     blocksa = CreateBlockTables(processors, process_block);
     blocksb = CreateBlockTables(processors, process_block);
     blocksc = CreateBlockTables(processors, process_block);
-
-    printf("Blocks created!!! \n");
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -443,8 +456,6 @@ int main(int argc, char* argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     start = MPI_Wtime();
-
-    printf("GO MPI \n");
 
     RunMPI(TABLE_SIZE, &blocksa[rank][0], &blocksb[rank][0], &blocksc[rank][0], 
             &matrixc[0], process_block, MPI_COMM_WORLD);
