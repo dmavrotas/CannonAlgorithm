@@ -346,7 +346,7 @@ double* MultiplyMatrixesDouble(double* matrixa, double* matrixb, int size) {
 
     if(matrixa == NULL || matrixb == NULL) return NULL;
 
-    returnTable = CreateHorizontalMatrix(size, size);
+    returnTable = CreateHorizontalMatrix(size, size, 0);
     if(returnTable == NULL) return NULL;
 
     if(size == 0) return NULL;
