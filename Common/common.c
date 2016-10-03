@@ -25,11 +25,11 @@ Matrix* CreateMatrix(int sizex, int sizey, double** dataz) {
         matrix->items[i] = malloc(sizey * sizeof(MatrixItem));
         if(matrix->items[i] == NULL) return NULL;
         for(j = 0; j < sizey; j++) {
-            // if(matrix->items[i][j] != NULL) {
+             if(matrix->items[i][j] != NULL) {
                 matrix->items[i][j].row = i;
                 matrix->items[i][j].column = j;
                 matrix->items[i][j].data = dataz[i][j];
-            //} 
+            } 
         }
     }
 
