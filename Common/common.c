@@ -22,14 +22,12 @@ Matrix* CreateMatrix(int sizex, int sizey, double** dataz) {
     if(matrix->items == NULL) return NULL;
 
     for(i = 0; i < sizex; i++) {
-        matrix->items[i] = malloc(sizey * sizeof(MatrixItem));
+        matrix->items[i] = calloc(sizey, sizeof(MatrixItem));
         if(matrix->items[i] == NULL) return NULL;
         for(j = 0; j < sizey; j++) {
-             if(matrix->items[i][j] != NULL) {
-                matrix->items[i][j].row = i;
-                matrix->items[i][j].column = j;
-                matrix->items[i][j].data = dataz[i][j];
-            } 
+            matrix->items[i][j].row = i;
+            matrix->items[i][j].column = j;
+            matrix->items[i][j].data = dataz[i][j];
         }
     }
 
@@ -65,9 +63,7 @@ void PrintMatrix(Matrix* matrix) {
 
     for(i = 0; i < matrix->sizex; i++) {
         for(j = 0; j < matrix->sizey; j++) {
-            // if((matrix->items[i][j]).data[0] != NULL) {
-                printf(" %2f ", (matrix->items[i][j]).data);
-            //}
+            printf(" %2f ", (matrix->items[i][j]).data);
         }
         printf("\n");
     }
@@ -94,16 +90,18 @@ void LeftShiftMatrix(Matrix* matrix, int blockSize, int initialBlock) {
     int step = blockSize;
     Matrix* middle = NULL;
 
-    middle = CreateMatrix(1, matrix->sizey, CreateEmptyDataSet(matrix->sizex, matrix->sizey));
-    for(k = 0, s = 0; k < matrix->sizey; k+= blockSize, s++) {
+    middle = CreateMatrix(1, matrix->sizey, CreateEmptyDataSet(1, matrix->sizey));
+    for(k = 0, s = 0; k < matrix->sizey; k += blockSize, s++) {
         for(i = k; i < (k + blockSize); i++) {
             if(initialBlock > 0) {
                 step = s * blockSize;
             }
+
             for(j = 0; j < matrix->sizey; j++) {
                 middle->items[0][j].data = matrix->items[i][(j + step)
                                             % matrix->sizey].data;
             }
+            
             for(j = 0; j < matrix->sizey; j++) {
                 matrix->items[i][j].data = middle->items[0][j].data;
             }
@@ -272,7 +270,7 @@ double** CreateRandomDataSet(int sizex, int sizey) {
     if(datas == NULL) return NULL;
 
     for(i = 0; i < sizex; i++) {
-        datas[i] = malloc(j * sizeof(double));
+        datas[i] = malloc(sizey * sizeof(double));
 
         if(datas[i] == NULL) return NULL;
         
@@ -296,7 +294,7 @@ double** CreateEmptyDataSet(int sizex, int sizey) {
     if(datas == NULL) return NULL;
 
     for(i = 0; i < sizex; i++) {
-        datas[i] = malloc(j * sizeof(double));
+        datas[i] = malloc(sizey * sizeof(double));
 
         if(datas[i] == NULL) return NULL;
         
